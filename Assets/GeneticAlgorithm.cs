@@ -34,6 +34,9 @@ public class GeneticAlgorithm : MonoBehaviour {
     //Array of clouds [cloud number][ball number][x,y,z,size]
     //float[,,] cloud;
     public GameObject cloudBall;
+    [Range(0,1)]
+    public float mutationRate;
+    public float treshold;
 
     [Header("Population Size")]
     public int cloudNumber;
@@ -107,7 +110,7 @@ public class GeneticAlgorithm : MonoBehaviour {
             clouds[i].fitness = fitnessValue;
             //fitnessValues[i] = 1.0f / fitnessValue;
             totalFitnessValues += fitnessValue;
-            Debug.Log(i + " | " + fitnessValue);
+            //Debug.Log(i + " | " + fitnessValue);
         }
 
         for (int i = 0; i < 2; i++) {
@@ -118,8 +121,8 @@ public class GeneticAlgorithm : MonoBehaviour {
                 tempSum += clouds[tempIndex].fitness;
                 if (tempIndex < clouds.Count-1) tempIndex++;
             }
-            Debug.Log("TempIndex = " + tempIndex + " Fitness:" + clouds[tempIndex].fitness);
-            temp.Add ( new Cloud(clouds[tempIndex].spheres, clouds[tempIndex].fitness));
+            //.Log("TempIndex = " + tempIndex + " Fitness:" + clouds[tempIndex].fitness);
+            temp.Add( clouds[tempIndex]);
             //Debug.Log(temp);
         }
         return temp;
@@ -135,29 +138,38 @@ public class GeneticAlgorithm : MonoBehaviour {
                 children[1].spheres[i] = temp;
             }
         }
-        return children;
+        return clouds;
     }
 
     List<Cloud> Mutation() {
         //Debug.Log(iteration + "Mutating");
+        int membersAmount = cloudNumber * cloudBallNumber;
+        int mutatedMembersAmount = (int)(membersAmount * mutationRate);
+         
         List<Cloud> children = Crossover();
-        for (int i = 0; i < children.Count; i++) {
-            int first = Random.Range(0, cloudBallNumber);
-            int second;
-            do {
-                second = Random.Range(0, cloudBallNumber);
-            } while (first == second);
-            Sphere temp = children[i].spheres[first];
-            children[i].spheres[first] = children[i].spheres[second];
-            children[i].spheres[second] = temp;
+        for (int n = 0; n < mutatedMembersAmount; n++) {
+            int randomPos = Random.Range(0, membersAmount);
+            for (int i = 0; i < cloudNumber; i++) {
+                for (int j = 0; j < cloudBallNumber; j++) {
+                    if (i * cloudBallNumber + j > randomPos) break;
+                    else if (i * cloudBallNumber + j == randomPos) {
+                        clouds[i].spheres[j].radius = Random.Range(minRadius, maxRadius);
+                        clouds[i].spheres[j].position = new Vector3(
+                            Random.Range(minimum.x, maximum.x),
+                            Random.Range(minimum.y, maximum.y),
+                            Random.Range(minimum.z, maximum.z));
+                        break;
+                    }
+                }
+            }
         }
         return children;
     }
 
     List<Cloud> DecodeAndFitnessCalculation() {
         //Debug.Log(iteration + "Decoding and Calculating Fitness");
-        List<Cloud> children = Mutation();
-        for (int i = 0; i < clouds.Count; i++) children.Add(clouds[i]);
+        List<Cloud> children = clouds;
+        //for (int i = 0; i < clouds.Count; i++) children.Add(clouds[i]);
         //Debug.Log("PANJANG TOTAL " + children.Count);
             //clouds.Concat(Mutation()).ToArray();
         for (int index = 0; index < children.Count; index++) {
@@ -204,7 +216,7 @@ public class GeneticAlgorithm : MonoBehaviour {
 
     Cloud FindBest() {
         //Debug.Log(iteration + "Finding Best");
-        clouds = SurvivorSelection();
+        clouds = Mutation();
         Cloud best = clouds[0];
         for (int i = 0; i<clouds.Count; i++) {
             float fitnessValue = FindPopulationFitness(i);
@@ -218,15 +230,15 @@ public class GeneticAlgorithm : MonoBehaviour {
 
     IEnumerator GeneticAlgorithmProcess() {
         PopulationInitialization();
-        while (FindBest().fitness > 0.01) {
+        do {
             //foreach (MeshRenderer g in FindObjectsOfType<MeshRenderer>()) Destroy(g);
             iteration++;
-            Debug.Log("Generasi: "+iteration);
+            Debug.Log("Generasi: " + iteration);
             Destroy(GameObject.Find("Cloud"));
             CheckPopulation(FindBest());
             //yield return null;
-            yield return new WaitForSeconds (2f);
-        }
+            yield return new WaitForSeconds(0.01f);
+        } while (FindBest().fitness > treshold);
         //CheckPopulation(Mutation()[0]);
     }
 
