@@ -37,6 +37,7 @@ public class GeneticAlgorithm : MonoBehaviour {
     [Range(0,1)]
     public float mutationRate;
     public float treshold;
+    public float delayTime;
 
     [Header("Population Size")]
     public int cloudNumber;
@@ -223,22 +224,26 @@ public class GeneticAlgorithm : MonoBehaviour {
             clouds[i].fitness = fitnessValue;
             if (clouds[i].fitness > best.fitness) best = clouds[i];
         }
-        Debug.Log(best.fitness);
         //if (1 / best.fitness > 1) return FindBest();
         return best;
     }
 
     IEnumerator GeneticAlgorithmProcess() {
         PopulationInitialization();
+        float fitness = 0;
+        Cloud bestCloud = new Cloud();
         do {
             //foreach (MeshRenderer g in FindObjectsOfType<MeshRenderer>()) Destroy(g);
             iteration++;
-            Debug.Log("Generasi: " + iteration);
+
             Destroy(GameObject.Find("Cloud"));
-            CheckPopulation(FindBest());
+            bestCloud = FindBest();
+            CheckPopulation(bestCloud);
+            fitness = 1 / bestCloud.fitness;
+            Debug.Log("Generasi: " + iteration+" Fitness: "+fitness);
             //yield return null;
-            yield return new WaitForSeconds(0.01f);
-        } while (FindBest().fitness > treshold);
+            yield return new WaitForSeconds(delayTime);
+        } while (fitness>treshold);
         //CheckPopulation(Mutation()[0]);
     }
 
